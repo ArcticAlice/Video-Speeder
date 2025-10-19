@@ -6,34 +6,38 @@ const text = document.createElement('p');
 box.classList.add('extensionContainer');
 text.classList.add('extensionParagraph');
 
-// access video elements on page
-const video = document.querySelector('video');
+// variable for video element on page
+let video;
+
+// variable for url of video
+let lastUrl = location.href;
 
 box.appendChild(text);
 document.body.appendChild(box);
 
-// gets the size of video and then positions box within the video border
-function positionOverlay() {
-    if (!video) return;
-    const rect = video.getBoundingClientRect();
+// sets up the basic info for every video
+function getInfo() {
+
+    const newVideo = document.querySelector('video');
+
+    if (!newVideo) return;
+
+    // sets the position of the box
+    const rect = newVideo.getBoundingClientRect();
     box.style.left = `${rect.left + window.scrollX + 50}px`;
     box.style.top = `${rect.top + window.scrollY + 50}px`;
+
+    // sets the text's speed
+    text.innerHTML = newVideo.playbackRate.toFixed(2);
+
+    return newVideo;
+
 }
 
-//updates display of video
-function updateSpeedDisplay() {
-    if (!video) return;
-    text.textContent = video.playbackRate.toFixed(2);
-}
-
-// updates text inside box
-function set() {
-    if (!video) return;
-    text.innerHTML = video.playbackRate;
-}
-
-positionOverlay();
-updateSpeedDisplay();
+// Add timeout to get properties after youtube video loads
+setTimeout(() => {
+    video = getInfo();
+}, 3000);
 
 // Pressing A slows video will D speeds up video
 window.addEventListener('keydown', (e) => {
@@ -50,7 +54,25 @@ window.addEventListener('keydown', (e) => {
         video.playbackRate += 0.10
         text.innerHTML = video.playbackRate.toFixed(2);
     }
+
 });
+
+// Listen for when a new youtube video is clicked
+window.addEventListener('yt-navigate-finish', () => {
+    setTimeout(() => {
+        video = getInfo();
+    }, 3000); // wait half a second for YouTube to load the new player
+});
+
+new MutationObserver(() => {
+    const currentUrl = location.href;
+    if (currentUrl !== lastUrl) {
+        lastUrl = currentUrl;
+        text.innerHTML = '...';
+        video = getInfo();
+    }
+}).observe(document, { subtree: true, childList: true });
+
 
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
